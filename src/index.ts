@@ -34,20 +34,34 @@ function log(msg: string, data?: Record<string, unknown>) {
   );
 }
 
+function info(req: Request, url: URL) {
+  return {
+    method: req.method,
+    path: url.pathname,
+    search: url.search,
+    has_auth: !!req.headers.get("authorization"),
+    has_account: !!req.headers.get("ChatGPT-Account-Id"),
+  };
+}
+
+function path(base: URL, next: string) {
+  base.pathname = `${base.pathname.replace(/\/+$/, "")}/${next.replace(
+    /^\/+/,
+    ""
+  )}`;
+  return base;
+}
+
 function target(url: URL) {
   if (url.pathname === "/v1/responses") return new URL(upstream);
   if (url.pathname === "/chat/completions") return new URL(upstream);
 
-  const base = new URL(upstream);
-  base.pathname = `${base.pathname.replace(/\/+$/, "")}/${url.pathname.replace(
-    /^\/+/,
-    ""
-  )}`;
+  const base = path(new URL(upstream), url.pathname);
   base.search = url.search;
   return base;
 }
 
-function headers(input: Headers) {
+function forwarded(input: Headers) {
   const out = new Headers();
   for (const [k, v] of input) {
     const key = k.toLowerCase();
@@ -58,8 +72,35 @@ function headers(input: Headers) {
   return out;
 }
 
+async function body(req: Request, url: URL, res: Response) {
+  if (!debug) return;
+  if (!LOG_CODEX_BODY) return;
+  if (!res.body) return;
+
+  log("response_body", {
+    method: req.method,
+    path: url.pathname,
+    status: res.status,
+    body: await res
+      .clone()
+      .text()
+      .catch(() => ""),
+  });
+}
+
+function output(res: Response) {
+  const headers = new Headers(res.headers);
+  headers.delete("content-length");
+  return new Response(res.body, {
+    status: res.status,
+    statusText: res.statusText,
+    headers,
+  });
+}
+
 async function proxy(req: Request) {
   const url = new URL(req.url);
+  const meta = info(req, url);
 
   if (url.pathname === "/health") {
     log("health", { path: url.pathname });
@@ -70,28 +111,19 @@ async function proxy(req: Request) {
   }
 
   if (req.headers.get(gate) !== code) {
-    log("deny", {
-      method: req.method,
-      path: url.pathname,
-      has_auth: !!req.headers.get("authorization"),
-      has_account: !!req.headers.get("ChatGPT-Account-Id"),
-    });
+    log("deny", meta);
     return deny(401, "Invalid access code");
   }
 
   const dst = target(url);
   log("request", {
-    method: req.method,
-    path: url.pathname,
-    search: url.search,
+    ...meta,
     target: dst.toString(),
-    has_auth: !!req.headers.get("authorization"),
-    has_account: !!req.headers.get("ChatGPT-Account-Id"),
   });
 
   const init: RequestInit & { duplex?: "half" } = {
     method: req.method,
-    headers: headers(req.headers),
+    headers: forwarded(req.headers),
     redirect: "manual",
   };
 
@@ -101,30 +133,14 @@ async function proxy(req: Request) {
   }
 
   const res = await fetch(dst, init);
-  if (debug && LOG_CODEX_BODY && res.body) {
-    const copy = res.clone();
-    const body = await copy.text().catch(() => "");
-    log("response_body", {
-      method: req.method,
-      path: url.pathname,
-      status: res.status,
-      body,
-    });
-  }
-  const out = new Headers(res.headers);
-  out.delete("content-length");
+  await body(req, url, res);
   log("response", {
-    method: req.method,
-    path: url.pathname,
+    ...meta,
     status: res.status,
     content_type: res.headers.get("content-type"),
   });
 
-  return new Response(res.body, {
-    status: res.status,
-    statusText: res.statusText,
-    headers: out,
-  });
+  return output(res);
 }
 
 Bun.serve({
