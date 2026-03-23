@@ -6,6 +6,12 @@ const debug = !!process.env.CODEX_DEBUG;
 const LOG_CODEX_BODY = false;
 const gate = "x-access-code";
 const hop = new Set([
+  "cdn-loop",
+  "cf-connecting-ip",
+  "cf-ipcountry",
+  "cf-ray",
+  "cf-visitor",
+  "cf-warp-tag-id",
   "connection",
   "content-length",
   "host",
@@ -16,6 +22,11 @@ const hop = new Set([
   "trailer",
   "transfer-encoding",
   "upgrade",
+  "via",
+  "x-forwarded-for",
+  "x-forwarded-host",
+  "x-forwarded-proto",
+  "x-real-ip",
 ]);
 
 if (!code) throw new Error("Missing ACCESS_CODE");
@@ -74,7 +85,7 @@ function forwarded(input: Headers) {
 
 async function body(req: Request, url: URL, res: Response) {
   if (!debug) return;
-  if (!LOG_CODEX_BODY) return;
+  if (!LOG_CODEX_BODY && res.ok) return;
   if (!res.body) return;
 
   log("response_body", {
@@ -115,6 +126,7 @@ async function proxy(req: Request) {
     return deny(401, "Invalid access code");
   }
 
+  const headers = forwarded(req.headers);
   const dst = target(url);
   log("request", {
     ...meta,
@@ -123,7 +135,7 @@ async function proxy(req: Request) {
 
   const init: RequestInit & { duplex?: "half" } = {
     method: req.method,
-    headers: forwarded(req.headers),
+    headers,
     redirect: "manual",
   };
 
@@ -145,6 +157,7 @@ async function proxy(req: Request) {
 
 Bun.serve({
   port,
+  idleTimeout: 0,
   async fetch(req) {
     try {
       return await proxy(req);

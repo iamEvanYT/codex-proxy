@@ -1,6 +1,6 @@
 services:
   codex-proxy:
-    image: ghcr.io/iamEvanYT/codex-proxy:latest
+    image: ghcr.io/iamevanyt/codex-proxy:latest
     ports:
       - "3000:3000"
     environment:
