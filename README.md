@@ -1,4 +1,4 @@
-# Codex
+# Codex Proxy
 
 Small Bun proxy for Codex requests. It expects OpenCode to send the normal upstream auth headers like `Authorization` and `ChatGPT-Account-Id`, and it forwards those headers to Codex unchanged.
 
@@ -24,6 +24,22 @@ Run:
 ```bash
 bun run .
 ```
+
+Docker:
+
+```bash
+docker build -t codex-proxy .
+docker run --rm -p 3000:3000 \
+  -e ACCESS_CODE=your-local-gate \
+  -e PORT=3000 \
+  -e UPSTREAM_URL=https://chatgpt.com/backend-api/codex/responses \
+  codex-proxy
+```
+
+GitHub Actions:
+
+- The workflow at `.github/workflows/docker.yml` builds and publishes the image to `ghcr.io/<owner>/<repo>`.
+- Pushes to `main`, version tags like `v1.0.0`, and manual runs publish images.
 
 Example request:
 
