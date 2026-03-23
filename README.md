@@ -10,6 +10,7 @@ Environment:
 export ACCESS_CODE=your-local-gate
 export PORT=3000
 export UPSTREAM_URL=https://chatgpt.com/backend-api/codex/responses
+export CODEX_DEBUG=1
 ```
 
 Install dependencies:
@@ -40,3 +41,5 @@ Supported path behavior:
 - `/v1/responses` -> proxied to `UPSTREAM_URL`
 - `/chat/completions` -> proxied to `UPSTREAM_URL`
 - any other path -> proxied relative to `UPSTREAM_URL`
+
+When `CODEX_DEBUG` is set, the proxy logs request routing, auth-header presence, upstream status codes, and proxy errors.
