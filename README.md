@@ -36,9 +36,18 @@ docker run --rm -p 3000:3000 \
   codex-proxy
 ```
 
+Docker Compose:
+
+```bash
+docker compose up
+```
+
+Edit [`docker-compose.yml`](/Users/evan/Developer/try/2026-03-23-codex-proxy/docker-compose.yml) and replace `ACCESS_CODE: change-me` before using it.
+
 GitHub Actions:
 
-- The workflow at `.github/workflows/docker.yml` builds and publishes the image to `ghcr.io/<owner>/<repo>`.
+- The workflow at `.github/workflows/docker.yml` builds and publishes a multi-arch image to `ghcr.io/iamEvanYT/codex-proxy`.
+- Published platforms are `linux/amd64` and `linux/arm64`.
 - Pushes to `main`, version tags like `v1.0.0`, and manual runs publish images.
 
 Example request:

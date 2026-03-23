@@ -1,0 +1,7 @@
+services:
+  codex-proxy:
+    image: ghcr.io/iamEvanYT/codex-proxy:latest
+    ports:
+      - "3000:3000"
+    environment:
+      ACCESS_CODE: change-me
