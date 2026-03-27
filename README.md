@@ -49,6 +49,7 @@ GitHub Actions:
 - The workflow at `.github/workflows/docker.yml` builds and publishes a multi-arch image to `ghcr.io/iamEvanYT/codex-proxy`.
 - Published platforms are `linux/amd64` and `linux/arm64`.
 - Pushes to `main`, version tags like `v1.0.0`, and manual runs publish images.
+- If GitHub-hosted runners hit Docker Hub rate limits while pulling `moby/buildkit` or `oven/bun`, add `DOCKERHUB_USERNAME` and `DOCKERHUB_TOKEN` repository secrets so the workflow can log in before Buildx starts.
 
 Example request:
 
