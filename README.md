@@ -1,6 +1,6 @@
 # Codex Proxy
 
-Small Bun proxy for Codex requests. It expects OpenCode to send the normal upstream auth headers like `Authorization` and `ChatGPT-Account-Id`, and it forwards those headers to Codex unchanged.
+Small Bun proxy for Codex requests and Codex OAuth token/device-auth API calls. It expects OpenCode to send the normal upstream auth headers like `Authorization` and `ChatGPT-Account-Id`, and it forwards those headers upstream unchanged.
 
 The proxy also requires a separate access code on each incoming request via `x-access-code`. That access code is checked locally and is never forwarded upstream.
 
@@ -10,6 +10,7 @@ Environment:
 export ACCESS_CODE=your-local-gate
 export PORT=3000
 export UPSTREAM_URL=https://chatgpt.com/backend-api/codex/responses
+export AUTH_UPSTREAM_URL=https://auth.openai.com
 export CODEX_DEBUG=1
 ```
 
@@ -33,6 +34,7 @@ docker run --rm -p 3000:3000 \
   -e ACCESS_CODE=your-local-gate \
   -e PORT=3000 \
   -e UPSTREAM_URL=https://chatgpt.com/backend-api/codex/responses \
+  -e AUTH_UPSTREAM_URL=https://auth.openai.com \
   codex-proxy
 ```
 
@@ -66,6 +68,11 @@ Supported path behavior:
 
 - `/v1/responses` -> proxied to `UPSTREAM_URL`
 - `/chat/completions` -> proxied to `UPSTREAM_URL`
+- `/oauth/token` -> proxied to `AUTH_UPSTREAM_URL`
+- `/api/accounts/deviceauth/usercode` -> proxied to `AUTH_UPSTREAM_URL`
+- `/api/accounts/deviceauth/token` -> proxied to `AUTH_UPSTREAM_URL`
 - any other path -> proxied relative to `UPSTREAM_URL`
+
+Browser-facing login pages like `https://auth.openai.com/oauth/authorize` and `https://auth.openai.com/codex/device` are still opened directly by OpenCode and do not pass through the proxy.
 
 When `CODEX_DEBUG` is set, the proxy logs request routing, auth-header presence, upstream status codes, and proxy errors.

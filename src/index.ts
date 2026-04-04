@@ -2,6 +2,7 @@ const code = process.env.ACCESS_CODE;
 const port = parseInt(process.env.PORT || "3000") || 3000;
 const upstream =
   process.env.UPSTREAM_URL || "https://chatgpt.com/backend-api/codex/responses";
+const issuer = process.env.AUTH_UPSTREAM_URL || "https://auth.openai.com";
 const debug = !!process.env.CODEX_DEBUG;
 const LOG_CODEX_BODY = false;
 const gate = "x-access-code";
@@ -63,7 +64,21 @@ function path(base: URL, next: string) {
   return base;
 }
 
+function auth(url: URL) {
+  return (
+    url.pathname === "/oauth/token" ||
+    url.pathname === "/api/accounts/deviceauth/usercode" ||
+    url.pathname === "/api/accounts/deviceauth/token"
+  );
+}
+
 function target(url: URL) {
+  if (auth(url)) {
+    const base = path(new URL(issuer), url.pathname);
+    base.search = url.search;
+    return base;
+  }
+
   if (url.pathname === "/v1/responses") return new URL(upstream);
   if (url.pathname === "/chat/completions") return new URL(upstream);
 
@@ -118,6 +133,7 @@ async function proxy(req: Request) {
     return Response.json({
       ok: true,
       upstream,
+      issuer,
     });
   }
 
