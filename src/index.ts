@@ -116,6 +116,7 @@ async function body(req: Request, url: URL, res: Response) {
 
 function output(res: Response) {
   const headers = new Headers(res.headers);
+  headers.delete("content-encoding");
   headers.delete("content-length");
   return new Response(res.body, {
     status: res.status,
